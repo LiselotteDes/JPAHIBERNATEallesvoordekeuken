@@ -10,12 +10,12 @@ import be.vdab.allesvoordekeuken.entities.Artikel;
 
 @Repository
 class JpaArtikelRepository implements ArtikelRepository {
-	private final EntityManager entityManager;
+	private final EntityManager manager;
 	JpaArtikelRepository(EntityManager entityManager) {
-		this.entityManager = entityManager;
+		this.manager = entityManager;
 	}
 	@Override
 	public Optional<Artikel> read(long id) {
-		return Optional.ofNullable(entityManager.find(Artikel.class, id));
+		return Optional.ofNullable(manager.find(Artikel.class, id));
 	}
 }
