@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import javax.persistence.EntityManager;
@@ -57,4 +58,32 @@ public class JpaArtikelRepositoryTest {
 				.setParameter("id", autoNumberId)
 				.getSingleResult());
 	}
+	// *** Testen voor findByNaamContains method ***
+	@Test
+	public void findByNaamContains() {
+		idVanNieuwArtikel();
+		List<Artikel> artikels = repository.findByNaamContains("e");
+		// *** Juist aantal ***
+		long aantal = ((Number) (manager.createNativeQuery("select count(*) from artikels where naam like '%e%'").getSingleResult())).longValue();
+		assertEquals(aantal, artikels.size());
+		// *** Alle namen bevatten de juiste string ***
+		artikels.forEach(artikel -> assertTrue(artikel.getNaam().toLowerCase().contains("e")));
+		// *** Juiste volgorde ***
+		String vorigeNaam = "";
+		for (Artikel artikel: artikels) {
+			assertTrue(vorigeNaam.compareTo(artikel.getNaam()) <= 0);
+			vorigeNaam = artikel.getNaam();
+		}
+	}
+	@Test(expected = IllegalArgumentException.class)
+	public void findByNaamContainsMetLegeStringKanNiet() {
+		idVanNieuwArtikel();
+		repository.findByNaamContains("");
+	}
+	@Test(expected = NullPointerException.class)
+	public void findByNaamContainsMetNullKanNiet() {
+		idVanNieuwArtikel();
+		repository.findByNaamContains(null);
+	}
+	// *** einde voor findByNaamContains ***
 }
