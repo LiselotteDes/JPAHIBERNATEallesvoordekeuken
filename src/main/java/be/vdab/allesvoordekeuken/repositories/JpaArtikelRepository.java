@@ -27,9 +27,15 @@ class JpaArtikelRepository implements ArtikelRepository {
 	@Override
 	public List<Artikel> findByNaamContains(String bevat) {
 //		throw new UnsupportedOperationException();
-		if (bevat.isEmpty()) {
-			throw new IllegalArgumentException();
-		}
+		/*
+		 * Volgende controle is er terug uitgehaald omdat dit in de service layer hoort !
+		 * De redenering is dat de repository layer niet controleert of de parameter bevat van de method findByNaamContains 
+		 * niet leeg is en verschilt van null.
+		 * Deze verantwoordelijkheid is voor de services layer.
+		 */
+//		if (bevat.isEmpty()) {
+//			throw new IllegalArgumentException();
+//		}
 		return manager.createNamedQuery("Artikel.findByNaamContains", Artikel.class)
 				.setParameter("bevat", "%" + bevat + "%")
 				.getResultList();

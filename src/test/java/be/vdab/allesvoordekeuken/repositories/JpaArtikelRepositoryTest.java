@@ -75,15 +75,21 @@ public class JpaArtikelRepositoryTest {
 			vorigeNaam = artikel.getNaam();
 		}
 	}
-	@Test(expected = IllegalArgumentException.class)
-	public void findByNaamContainsMetLegeStringKanNiet() {
-		idVanNieuwArtikel();
-		repository.findByNaamContains("");
-	}
-	@Test(expected = NullPointerException.class)
-	public void findByNaamContainsMetNullKanNiet() {
-		idVanNieuwArtikel();
-		repository.findByNaamContains(null);
-	}
+	/*
+	 * Volgende tests zijn er terug uitgehaald omdat deze in de tests voor de service layer horen !
+	 * De redenering is dat de repository layer niet controleert of de parameter bevat van de method findByNaamContains 
+	 * niet leeg is en verschilt van null.
+	 * Deze verantwoordelijkheid is voor de services layer.
+	 */
+//	@Test(expected = IllegalArgumentException.class)
+//	public void findByNaamContainsMetLegeStringKanNiet() {
+//		idVanNieuwArtikel();
+//		repository.findByNaamContains("");
+//	}
+//	@Test(expected = NullPointerException.class)
+//	public void findByNaamContainsMetNullKanNiet() {
+//		idVanNieuwArtikel();
+//		repository.findByNaamContains(null);
+//	}
 	// *** einde voor findByNaamContains ***
 }
