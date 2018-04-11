@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import javax.persistence.EntityManager;
 
@@ -21,6 +20,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import be.vdab.allesvoordekeuken.entities.Artikel;
+import be.vdab.allesvoordekeuken.entities.FoodArtikel;
+import be.vdab.allesvoordekeuken.entities.NonFoodArtikel;
 
 @RunWith(SpringRunner.class)
 @DataJpaTest
@@ -31,37 +32,73 @@ public class JpaArtikelRepositoryTest {
 	private EntityManager manager;
 	@Autowired
 	private JpaArtikelRepository repository;
-	private Artikel artikel;
+//	private Artikel artikel;
+	private FoodArtikel foodArtikel;
+	private NonFoodArtikel nonFoodArtikel;
+//	@Before
+//	public void before() {
+//		artikel = new Artikel("test", BigDecimal.ONE, BigDecimal.TEN);
+//	}
 	@Before
 	public void before() {
-		artikel = new Artikel("test", BigDecimal.ONE, BigDecimal.TEN);
+		foodArtikel = new FoodArtikel("testFood", BigDecimal.ONE, BigDecimal.TEN, 7);
+		nonFoodArtikel = new NonFoodArtikel("testNonFood", BigDecimal.ONE, BigDecimal.TEN, 24);
 	}
-	private long idVanNieuwArtikel() {
-		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs) values('test',100,120)")
-		.executeUpdate();
-		Number numberId = (Number) manager.createNativeQuery("select id from artikels where naam='test'").getSingleResult();
-		return numberId.longValue();
+	
+//	private long idVanNieuwArtikel() {
+//		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs) values('test',100,120)")
+//		.executeUpdate();
+//		Number numberId = (Number) manager.createNativeQuery("select id from artikels where naam='test'").getSingleResult();
+//		return numberId.longValue();
+//	}
+	
+	// "Inheritance: Table per class"
+	
+	private long idVanNieuwFoodArtikel() {
+		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,houdbaarheid) values('testFood',10,12,'F',5)").executeUpdate();
+		return ((Number) manager.createNativeQuery("select id from artikels where naam='testFood'").getSingleResult()).longValue();
+	}
+	private long idVanNieuwNonFoodArtikel() {
+		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,garantie) values('testNonFood',100,120,'NF',24)").executeUpdate();
+		return ((Number) manager.createNativeQuery("select id from artikels where naam='testNonFood'").getSingleResult()).longValue();
+	}
+//	@Test
+//	public void read() {
+//		Optional<Artikel> optionalArtikel = repository.read(idVanNieuwArtikel());
+//		assertTrue(optionalArtikel.isPresent());
+//		assertEquals("test", optionalArtikel.get().getNaam());
+//	}
+	@Test
+	public void readFoodArtikel() {
+//		Optional<Artikel> optionalArtikel = repository.read(idVanNieuwFoodArtikel());	// (verbeterd:)
+		FoodArtikel artikel = (FoodArtikel) repository.read(idVanNieuwFoodArtikel()).get();
+		assertEquals("testFood", artikel.getNaam());
 	}
 	@Test
-	public void read() {
-		Optional<Artikel> optionalArtikel = repository.read(idVanNieuwArtikel());
-		assertTrue(optionalArtikel.isPresent());
-		assertEquals("test", optionalArtikel.get().getNaam());
+	public void readNonFoodArtikel() {
+		NonFoodArtikel artikel = (NonFoodArtikel) repository.read(idVanNieuwNonFoodArtikel()).get();
+		assertEquals("testNonFood", artikel.getNaam());
 	}
 	@Test
-	public void create() {
-		repository.create(artikel);
-		long autoNumberId = artikel.getId();
+	public void createFood() {
+		repository.create(foodArtikel);
+		long autoNumberId = foodArtikel.getId();
 		assertNotEquals(0, autoNumberId);
-		assertEquals("test",
+		assertEquals("testFood",
 				(String) manager.createNativeQuery("select naam from artikels where id = :id")
 				.setParameter("id", autoNumberId)
 				.getSingleResult());
 	}
+	@Test
+	public void createNonFood() {
+		repository.create(nonFoodArtikel);
+		assertEquals("testNonFood", (String) manager.createNativeQuery(
+				"select naam from artikels where id = :id").setParameter("id", nonFoodArtikel.getId()).getSingleResult());
+	}
 	// *** Testen voor findByNaamContains method ***
 	@Test
 	public void findByNaamContains() {
-		idVanNieuwArtikel();
+		idVanNieuwFoodArtikel();
 		List<Artikel> artikels = repository.findByNaamContains("e");
 		// *** Juist aantal ***
 		long aantal = ((Number) (manager.createNativeQuery("select count(*) from artikels where naam like '%e%'").getSingleResult())).longValue();
@@ -94,7 +131,7 @@ public class JpaArtikelRepositoryTest {
 	// *** einde voor findByNaamContains ***
 	@Test
 	public void prijsVerhoging() {
-		long id = idVanNieuwArtikel();
+		long id = idVanNieuwNonFoodArtikel();
 		// Aantal gewijzigde records niet 0 (controle op de return-waarde van de method)
 		int aantalAangepast = repository.prijsVerhoging(BigDecimal.TEN);
 		assertNotEquals(0, aantalAangepast);
