@@ -92,4 +92,17 @@ public class JpaArtikelRepositoryTest {
 //		repository.findByNaamContains(null);
 //	}
 	// *** einde voor findByNaamContains ***
+	@Test
+	public void prijsVerhoging() {
+		long id = idVanNieuwArtikel();
+		// Aantal gewijzigde records niet 0 (controle op de return-waarde van de method)
+		int aantalAangepast = repository.prijsVerhoging(BigDecimal.TEN);
+		assertNotEquals(0, aantalAangepast);
+		// Prijs van toegevoegd record (eerste regel) is 132
+		BigDecimal nieuwePrijs = BigDecimal.valueOf( 
+				((Number) (manager.createNativeQuery("select verkoopprijs from artikels where id = :id")
+				.setParameter("id", id)
+				.getSingleResult())).doubleValue());
+		assertEquals(0, BigDecimal.valueOf(132).compareTo(nieuwePrijs));
+	}
 }
