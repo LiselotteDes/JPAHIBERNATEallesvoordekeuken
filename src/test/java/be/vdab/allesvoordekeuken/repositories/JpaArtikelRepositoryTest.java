@@ -22,6 +22,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import be.vdab.allesvoordekeuken.entities.Artikel;
 import be.vdab.allesvoordekeuken.entities.FoodArtikel;
 import be.vdab.allesvoordekeuken.entities.NonFoodArtikel;
+import be.vdab.allesvoordekeuken.valueobjects.Korting;
 
 @RunWith(SpringRunner.class)
 @DataJpaTest
@@ -141,5 +142,15 @@ public class JpaArtikelRepositoryTest {
 				.setParameter("id", id)
 				.getSingleResult())).doubleValue());
 		assertEquals(0, BigDecimal.valueOf(132).compareTo(nieuwePrijs));
+	}
+	
+	// "Verzamelingen van value objects met een eigen type"
+	@Test
+	public void kortingenLezen() {
+		long id = idVanNieuwFoodArtikel();
+		manager.createNativeQuery("insert into kortingen(artikelid,vanafAantal,percentage) values(:id,5,2)").setParameter("id", id).executeUpdate();
+		Artikel artikel = repository.read(id).get();
+		assertEquals(1, artikel.getKortingen().size());
+		assertTrue(artikel.getKortingen().contains(new Korting(5,BigDecimal.valueOf(2))));
 	}
 }
