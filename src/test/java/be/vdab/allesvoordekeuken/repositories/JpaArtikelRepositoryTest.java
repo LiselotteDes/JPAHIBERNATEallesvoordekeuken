@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import be.vdab.allesvoordekeuken.entities.Artikel;
+import be.vdab.allesvoordekeuken.entities.ArtikelGroep;
 import be.vdab.allesvoordekeuken.entities.FoodArtikel;
 import be.vdab.allesvoordekeuken.entities.NonFoodArtikel;
 import be.vdab.allesvoordekeuken.valueobjects.Korting;
@@ -29,6 +30,7 @@ import be.vdab.allesvoordekeuken.valueobjects.Korting;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import(JpaArtikelRepository.class)
 public class JpaArtikelRepositoryTest {
+	
 	@Autowired
 	private EntityManager manager;
 	@Autowired
@@ -36,14 +38,16 @@ public class JpaArtikelRepositoryTest {
 //	private Artikel artikel;
 	private FoodArtikel foodArtikel;
 	private NonFoodArtikel nonFoodArtikel;
+	private ArtikelGroep artikelGroep;
 //	@Before
 //	public void before() {
 //		artikel = new Artikel("test", BigDecimal.ONE, BigDecimal.TEN);
 //	}
 	@Before
 	public void before() {
-		foodArtikel = new FoodArtikel("testFood", BigDecimal.ONE, BigDecimal.TEN, 7);
-		nonFoodArtikel = new NonFoodArtikel("testNonFood", BigDecimal.ONE, BigDecimal.TEN, 24);
+		artikelGroep = new ArtikelGroep("test");
+		foodArtikel = new FoodArtikel("testFood", BigDecimal.ONE, BigDecimal.TEN, artikelGroep, 7);
+		nonFoodArtikel = new NonFoodArtikel("testNonFood", BigDecimal.ONE, BigDecimal.TEN, artikelGroep, 24);
 	}
 	
 //	private long idVanNieuwArtikel() {
@@ -56,11 +60,15 @@ public class JpaArtikelRepositoryTest {
 	// "Inheritance: Table per class"
 	
 	private long idVanNieuwFoodArtikel() {
-		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,houdbaarheid) values('testFood',10,12,'F',5)").executeUpdate();
+		manager.persist(artikelGroep);		// "Bidirectionele associatie"
+		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,artikelgroepid,houdbaarheid) "
+				+ "values('testFood',10,12,'F',:artikelgroepid,5)").setParameter("artikelgroepid", artikelGroep.getId()).executeUpdate();
 		return ((Number) manager.createNativeQuery("select id from artikels where naam='testFood'").getSingleResult()).longValue();
 	}
 	private long idVanNieuwNonFoodArtikel() {
-		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,garantie) values('testNonFood',100,120,'NF',24)").executeUpdate();
+		manager.persist(artikelGroep);		// "Bidirectionele associatie"
+		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,artikelgroepid,garantie) "
+				+ "values('testNonFood',100,120,'NF',:artikelgroepid,24)").setParameter("artikelgroepid", artikelGroep.getId()).executeUpdate();
 		return ((Number) manager.createNativeQuery("select id from artikels where naam='testNonFood'").getSingleResult()).longValue();
 	}
 //	@Test
@@ -82,6 +90,12 @@ public class JpaArtikelRepositoryTest {
 	}
 	@Test
 	public void createFood() {
+		manager.persist(artikelGroep);		// "Bidirectionele associatie"
+		manager.clear();					// "Bidirectionele associatie"
+		/*
+		 * Voorgaande dient om artikelGroep te verwijderen uit EntityManager cache,
+		 * zodat de tests die dit object niet vinden in de cache, maar moeten lezen uit de database als hij de nodig heeft.
+		 */
 		repository.create(foodArtikel);
 		long autoNumberId = foodArtikel.getId();
 		assertNotEquals(0, autoNumberId);
@@ -92,6 +106,8 @@ public class JpaArtikelRepositoryTest {
 	}
 	@Test
 	public void createNonFood() {
+		manager.persist(artikelGroep);		// "Bidirectionele associatie"
+		manager.clear();					// "Bidirectionele associatie"
 		repository.create(nonFoodArtikel);
 		assertEquals("testNonFood", (String) manager.createNativeQuery(
 				"select naam from artikels where id = :id").setParameter("id", nonFoodArtikel.getId()).getSingleResult());
@@ -152,5 +168,12 @@ public class JpaArtikelRepositoryTest {
 		Artikel artikel = repository.read(id).get();
 		assertEquals(1, artikel.getKortingen().size());
 		assertTrue(artikel.getKortingen().contains(new Korting(5,BigDecimal.valueOf(2))));
+	}
+	
+	// "Bidirectionele associatie"
+	@Test
+	public void artikelGroepLazyLoaded() {
+		Artikel artikel = repository.read(idVanNieuwFoodArtikel()).get();
+		assertEquals("test", artikel.getArtikelGroep().getNaam());
 	}
 }
