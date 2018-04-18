@@ -37,8 +37,10 @@ class JpaArtikelRepository implements ArtikelRepository {
 //		if (bevat.isEmpty()) {
 //			throw new IllegalArgumentException();
 //		}
-		return manager.createNamedQuery("Artikel.findByNaamContains", Artikel.class)
+		return manager
+				.createNamedQuery("Artikel.findByNaamContains", Artikel.class)
 				.setParameter("bevat", "%" + bevat + "%")
+				.setHint("javax.persistence.loadgraph", manager.createEntityGraph(Artikel.MET_ARTIKELGROEP))
 				.getResultList();
 	}
 	@Override

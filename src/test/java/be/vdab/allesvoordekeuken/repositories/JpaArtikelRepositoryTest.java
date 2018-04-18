@@ -176,4 +176,13 @@ public class JpaArtikelRepositoryTest {
 		Artikel artikel = repository.read(idVanNieuwFoodArtikel()).get();
 		assertEquals("test", artikel.getArtikelGroep().getNaam());
 	}
+	
+	// "N + 1 probleem"
+	@Test
+	public void nPlus1Probleem() {
+		idVanNieuwFoodArtikel();
+		List<Artikel> artikels = repository.findByNaamContains("e");
+		
+		artikels.forEach(artikel -> System.out.println(artikel.getNaam() + ':' + artikel.getArtikelGroep().getNaam()));
+	}
 }
