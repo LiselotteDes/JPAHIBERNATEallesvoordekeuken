@@ -17,6 +17,8 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit4.AbstractTransactionalJUnit4SpringContextTests;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import be.vdab.allesvoordekeuken.entities.Artikel;
@@ -29,7 +31,9 @@ import be.vdab.allesvoordekeuken.valueobjects.Korting;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import(JpaArtikelRepository.class)
-public class JpaArtikelRepositoryTest {
+@Sql("/insertArtikels.sql")
+public class JpaArtikelRepositoryTest extends AbstractTransactionalJUnit4SpringContextTests {
+	
 	
 	@Autowired
 	private EntityManager manager;
@@ -60,16 +64,22 @@ public class JpaArtikelRepositoryTest {
 	// "Inheritance: Table per class"
 	
 	private long idVanNieuwFoodArtikel() {
+		/*
 		manager.persist(artikelGroep);		// "Bidirectionele associatie"
 		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,artikelgroepid,houdbaarheid) "
 				+ "values('testFood',10,12,'F',:artikelgroepid,5)").setParameter("artikelgroepid", artikelGroep.getId()).executeUpdate();
-		return ((Number) manager.createNativeQuery("select id from artikels where naam='testFood'").getSingleResult()).longValue();
+		return ((Number) manager.createNativeQuery("select id from artikels where naam='testFood'").getSingleResult()).longValue();*/
+		return super.jdbcTemplate.queryForObject("select id from artikels where naam='testFood'", Long.class);
+		
 	}
 	private long idVanNieuwNonFoodArtikel() {
+		/*
 		manager.persist(artikelGroep);		// "Bidirectionele associatie"
 		manager.createNativeQuery("insert into artikels(naam,aankoopprijs,verkoopprijs,soort,artikelgroepid,garantie) "
 				+ "values('testNonFood',100,120,'NF',:artikelgroepid,24)").setParameter("artikelgroepid", artikelGroep.getId()).executeUpdate();
 		return ((Number) manager.createNativeQuery("select id from artikels where naam='testNonFood'").getSingleResult()).longValue();
+		*/
+		return super.jdbcTemplate.queryForObject("select id from artikels where naam='testNonFood'", Long.class);
 	}
 //	@Test
 //	public void read() {
@@ -90,36 +100,52 @@ public class JpaArtikelRepositoryTest {
 	}
 	@Test
 	public void createFood() {
+		/*
 		manager.persist(artikelGroep);		// "Bidirectionele associatie"
 		manager.clear();					// "Bidirectionele associatie"
-		/*
-		 * Voorgaande dient om artikelGroep te verwijderen uit EntityManager cache,
-		 * zodat de tests die dit object niet vinden in de cache, maar moeten lezen uit de database als hij de nodig heeft.
-		 */
+		//
+		// Voorgaande dient om artikelGroep te verwijderen uit EntityManager cache,
+		// zodat de tests die dit object niet vinden in de cache, maar moeten lezen uit de database als hij de nodig heeft.
+		//
 		repository.create(foodArtikel);
 		long autoNumberId = foodArtikel.getId();
 		assertNotEquals(0, autoNumberId);
 		assertEquals("testFood",
 				(String) manager.createNativeQuery("select naam from artikels where id = :id")
 				.setParameter("id", autoNumberId)
-				.getSingleResult());
+				.getSingleResult());*/
+		int aantalArtikels=super.countRowsInTable("artikels");
+		manager.persist(artikelGroep);
+		repository.create(foodArtikel);
+		assertEquals(aantalArtikels+1, super.countRowsInTable("artikels"));
+		assertEquals(1, super.countRowsInTableWhere("artikels", "id="+ foodArtikel.getId()));
 	}
 	@Test
 	public void createNonFood() {
+		/*
 		manager.persist(artikelGroep);		// "Bidirectionele associatie"
 		manager.clear();					// "Bidirectionele associatie"
 		repository.create(nonFoodArtikel);
 		assertEquals("testNonFood", (String) manager.createNativeQuery(
 				"select naam from artikels where id = :id").setParameter("id", nonFoodArtikel.getId()).getSingleResult());
+				*/
+		int aantalArtikels=super.countRowsInTable("artikels");
+		manager.persist(artikelGroep);
+		repository.create(nonFoodArtikel);
+		assertEquals(aantalArtikels+1, super.countRowsInTable("artikels"));
+		assertEquals(1, super.countRowsInTableWhere("artikels", "id="+ nonFoodArtikel.getId()));
+
+		
 	}
 	// *** Testen voor findByNaamContains method ***
 	@Test
 	public void findByNaamContains() {
-		idVanNieuwFoodArtikel();
+		//idVanNieuwFoodArtikel();
 		List<Artikel> artikels = repository.findByNaamContains("e");
 		// *** Juist aantal ***
-		long aantal = ((Number) (manager.createNativeQuery("select count(*) from artikels where naam like '%e%'").getSingleResult())).longValue();
-		assertEquals(aantal, artikels.size());
+		/*long aantal = ((Number) (manager.createNativeQuery("select count(*) from artikels where naam like '%e%'").getSingleResult())).longValue();
+		assertEquals(aantal, artikels.size());*/
+		assertEquals(super.countRowsInTableWhere("artikels", "naam like '%e%'"), artikels.size());
 		// *** Alle namen bevatten de juiste string ***
 		artikels.forEach(artikel -> assertTrue(artikel.getNaam().toLowerCase().contains("e")));
 		// *** Juiste volgorde ***
@@ -148,24 +174,26 @@ public class JpaArtikelRepositoryTest {
 	// *** einde voor findByNaamContains ***
 	@Test
 	public void prijsVerhoging() {
-		long id = idVanNieuwNonFoodArtikel();
+		//long id = idVanNieuwNonFoodArtikel();
 		// Aantal gewijzigde records niet 0 (controle op de return-waarde van de method)
 		int aantalAangepast = repository.prijsVerhoging(BigDecimal.TEN);
-		assertNotEquals(0, aantalAangepast);
+		assertEquals(super.countRowsInTable("artikels"), aantalAangepast);
+		assertEquals(0, BigDecimal.valueOf(13.2).compareTo(super.jdbcTemplate.queryForObject("select verkoopprijs from artikels where id=?", BigDecimal.class, idVanNieuwFoodArtikel())));
 		// Prijs van toegevoegd record (eerste regel) is 132
+		/*
 		BigDecimal nieuwePrijs = BigDecimal.valueOf( 
 				((Number) (manager.createNativeQuery("select verkoopprijs from artikels where id = :id")
 				.setParameter("id", id)
 				.getSingleResult())).doubleValue());
-		assertEquals(0, BigDecimal.valueOf(132).compareTo(nieuwePrijs));
+		assertEquals(0, BigDecimal.valueOf(132).compareTo(nieuwePrijs));*/
 	}
 	
 	// "Verzamelingen van value objects met een eigen type"
 	@Test
 	public void kortingenLezen() {
-		long id = idVanNieuwFoodArtikel();
-		manager.createNativeQuery("insert into kortingen(artikelid,vanafAantal,percentage) values(:id,5,2)").setParameter("id", id).executeUpdate();
-		Artikel artikel = repository.read(id).get();
+		//long id = idVanNieuwFoodArtikel();
+		//manager.createNativeQuery("insert into kortingen(artikelid,vanafAantal,percentage) values(:id,5,2)").setParameter("id", id).executeUpdate();
+		Artikel artikel = repository.read(idVanNieuwFoodArtikel()).get();
 		assertEquals(1, artikel.getKortingen().size());
 		assertTrue(artikel.getKortingen().contains(new Korting(5,BigDecimal.valueOf(2))));
 	}
@@ -180,7 +208,7 @@ public class JpaArtikelRepositoryTest {
 	// "N + 1 probleem"
 	@Test
 	public void nPlus1Probleem() {
-		idVanNieuwFoodArtikel();
+		//idVanNieuwFoodArtikel();
 		List<Artikel> artikels = repository.findByNaamContains("e");
 		
 		artikels.forEach(artikel -> System.out.println(artikel.getNaam() + ':' + artikel.getArtikelGroep().getNaam()));
